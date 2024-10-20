@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_todo_app/todo.dart';
+import 'package:flutter_todo_app/Todo.dart';
+import 'package:flutter_todo_app/helpers.dart';
 
 void main() {
   runApp(const TodoApp());
@@ -38,6 +39,12 @@ class _TodoListState extends State<TodoList> {
     setState(() {
       _todos.add(Todo(name: name, completed: false));
       _textFieldController.clear();
+    });
+  }
+
+  void _handleTodoChange(Todo todo) {
+    setState(() {
+      todo.completed = !todo.completed;
     });
   }
 
@@ -91,12 +98,16 @@ class _TodoListState extends State<TodoList> {
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         title: Text(widget.title),
       ),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[],
-        ),
+      body: ListView(
+        padding: const EdgeInsets.symmetric(vertical: 8.0),
+        children: _todos.map((Todo todo) {
+          return TodoItem(
+            todo: todo,
+            onTodoChanged: _handleTodoChange,
+          );
+        }).toList(),
       ),
+
       floatingActionButton: FloatingActionButton(
         onPressed: () => _displayDialog(),
         tooltip: 'Add a Todo',
