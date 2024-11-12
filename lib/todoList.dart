@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_todo_app/helpers.dart';
 import 'package:flutter_todo_app/todo.dart';
+import 'package:flutter_todo_app/todo_service.dart';
 import 'package:flutter_todo_app/trash.dart';
 
 class TodoList extends StatefulWidget {
@@ -12,21 +13,37 @@ class TodoList extends StatefulWidget {
 }
 
 class _TodoListState extends State<TodoList> {
+  final TodoService _todoService = TodoService();
   final List<Todo> _todos = <Todo>[];
-  final List<Todo> _trash = <Todo>[];
   final TextEditingController _textFieldController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _loadTodos();
+  }
+
+  void _loadTodos() async {
+    final todos = await _todoService.loadTodos();
+    setState(() {
+      _todos.addAll(todos);
+    });
+  }
 
   void _addTodoItem(String name) {
     setState(() {
-      _todos.add(Todo(name: name, completed: false));
+      _todos.add(Todo(name: name, completed: false, isSoftDeleted: false));
       _textFieldController.clear();
     });
+
+    _todoService.saveTodo(_todos);
   }
 
   void _handleTodoChange(Todo todo) {
     setState(() {
       todo.completed = !todo.completed;
     });
+    _todoService.saveTodo(_todos);
   }
 
   void _editTodoItem(String id, String name) {
@@ -34,12 +51,16 @@ class _TodoListState extends State<TodoList> {
       _todos.where((element) => element.id == id).first.name = name;
       _textFieldController.clear();
     });
+
+    _todoService.saveTodo(_todos);
   }
 
   void _deleteTodoItem(Todo todo) {
     setState(() {
       _todos.where((element) => element.id == todo.id).first.isSoftDeleted = true;
     });
+
+    _todoService.saveTodo(_todos);
   }
 
   Future<void> _displayDialog([Todo? todo]) async {
