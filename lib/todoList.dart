@@ -1,69 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_todo_app/helpers.dart';
 import 'package:flutter_todo_app/todo.dart';
-import 'package:flutter_todo_app/todo_service.dart';
+import 'package:flutter_todo_app/todo_provider.dart';
 import 'package:flutter_todo_app/trash.dart';
+import 'package:provider/provider.dart';
 
-class TodoList extends StatefulWidget {
-  const TodoList({super.key, required this.title});
+class TodoList extends StatelessWidget {
+  TodoList({super.key, required this.title});
   final String title;
 
-  @override
-  State<TodoList> createState() => _TodoListState();
-}
-
-class _TodoListState extends State<TodoList> {
-  final TodoService _todoService = TodoService();
-  final List<Todo> _todos = <Todo>[];
   final TextEditingController _textFieldController = TextEditingController();
 
-  @override
-  void initState() {
-    super.initState();
-    _loadTodos();
-  }
-
-  void _loadTodos() async {
-    final todos = await _todoService.loadTodos();
-    setState(() {
-      _todos.addAll(todos);
-    });
-  }
-
-  void _addTodoItem(String name) {
-    setState(() {
-      _todos.add(Todo(name: name, completed: false, isSoftDeleted: false));
-      _textFieldController.clear();
-    });
-
-    _todoService.saveTodo(_todos);
-  }
-
-  void _handleTodoChange(Todo todo) {
-    setState(() {
-      todo.completed = !todo.completed;
-    });
-    _todoService.saveTodo(_todos);
-  }
-
-  void _editTodoItem(String id, String name) {
-    setState(() {
-      _todos.where((element) => element.id == id).first.name = name;
-      _textFieldController.clear();
-    });
-
-    _todoService.saveTodo(_todos);
-  }
-
-  void _deleteTodoItem(Todo todo) {
-    setState(() {
-      _todos.where((element) => element.id == todo.id).first.isSoftDeleted = true;
-    });
-
-    _todoService.saveTodo(_todos);
-  }
-
-  Future<void> _displayDialog([Todo? todo]) async {
+  Future<void> _displayDialog(BuildContext context, TodoProvider todoProvider, [Todo? todo]) async {
     return showDialog<void>(
       context: context,
       // T: false,
@@ -97,10 +45,11 @@ class _TodoListState extends State<TodoList> {
               onPressed: () {
                 Navigator.of(context).pop();
                 if (todo != null) {
-                  _editTodoItem(todo.id, _textFieldController.text);
+                  todoProvider.editTodo(todo, _textFieldController.text);
                   return;
                 }
-                _addTodoItem(_textFieldController.text);
+                todoProvider.addTodo(_textFieldController.text);
+                _textFieldController.clear();
               },
               child: todo != null ? const Text('Edit') : const Text('Add'),
             ),
@@ -112,10 +61,12 @@ class _TodoListState extends State<TodoList> {
 
   @override
   Widget build(BuildContext context) {
+    final todoProvider = Provider.of<TodoProvider>(context);
+
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        title: Text(widget.title),
+        title: Text(title),
         actions: [
           IconButton(
               onPressed: () {
@@ -126,7 +77,7 @@ class _TodoListState extends State<TodoList> {
               icon: const Icon(Icons.recycling_sharp))
         ],
       ),
-      body: _todos.isEmpty
+      body: todoProvider.activeTodos.isEmpty
           ? const Center(
               child: Padding(
               padding: EdgeInsets.all(16.0),
@@ -138,11 +89,9 @@ class _TodoListState extends State<TodoList> {
             ))
           : ListView(
               padding: const EdgeInsets.symmetric(vertical: 8.0),
-              children: _todos.where((Todo todo) => !todo.isSoftDeleted).map((Todo todo) {
+              children: todoProvider.activeTodos.map((Todo todo) {
                 return TodoItem(
                   todo: todo,
-                  onTodoChanged: _handleTodoChange,
-                  onTodoDeleted: _deleteTodoItem,
                   textFieldController: _textFieldController,
                   showEditDialog: _displayDialog,
                 );
@@ -150,7 +99,7 @@ class _TodoListState extends State<TodoList> {
             ),
 
       floatingActionButton: FloatingActionButton(
-        onPressed: () => _displayDialog(),
+        onPressed: () => _displayDialog(context, todoProvider),
         tooltip: 'Add a Todo',
         child: const Icon(Icons.add),
       ), // This trailing comma makes auto-formatting nicer for build methods.
