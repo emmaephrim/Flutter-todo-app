@@ -33,6 +33,7 @@ class TodoList extends StatelessWidget {
               ),
               onPressed: () {
                 Navigator.of(context).pop();
+                _textFieldController.clear();
               },
               child: const Text('Cancel'),
             ),
@@ -46,6 +47,7 @@ class TodoList extends StatelessWidget {
                 Navigator.of(context).pop();
                 if (todo != null) {
                   todoProvider.editTodo(todo, _textFieldController.text);
+                  _textFieldController.clear();
                   return;
                 }
                 todoProvider.addTodo(_textFieldController.text);
